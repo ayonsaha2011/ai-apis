@@ -597,7 +597,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"model\": \"{{ltx_model}}\",\n  \"prompt\": \"A short cinematic shot of a futuristic API gateway glowing in a data center\",\n  \"size\": \"1024x576\",\n  \"n\": 1,\n  \"response_format\": \"url\",\n  \"frames\": 49,\n  \"num_inference_steps\": 28\n}"
+              "raw": "{\n  \"model\": \"{{ltx_model}}\",\n  \"prompt\": \"A short cinematic shot of a futuristic API gateway glowing in a data center\",\n  \"size\": \"1024x576\",\n  \"n\": 1,\n  \"response_format\": \"url\",\n  \"duration\": 2.0,\n  \"frame_rate\": 24.0,\n  \"enhance_prompt\": true,\n  \"num_inference_steps\": 28\n}"
             },
             "url": {
               "raw": "{{base_url}}/v1/images/generations",

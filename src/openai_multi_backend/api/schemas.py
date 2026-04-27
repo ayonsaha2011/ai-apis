@@ -185,6 +185,9 @@ class ImageGenerationRequest(OpenAIBaseModel):
     guidance_scale: float | None = Field(default=None, ge=0.0)
     num_inference_steps: int | None = Field(default=None, ge=1)
     frames: int | None = Field(default=None, ge=1)
+    duration: float | None = Field(default=None, gt=0.0)
+    frame_rate: float | None = Field(default=None, gt=0.0)
+    enhance_prompt: bool = False
 
     @field_validator("size")
     @classmethod

@@ -78,6 +78,7 @@ class Settings(BaseSettings):
     image_max_steps: int = 100
     video_default_frames: int = 49
     video_max_frames: int = 257
+    video_default_frame_rate: float = 24.0
     ltx_repo_id: Literal["Lightricks/LTX-2.3", "Lightricks/LTX-2.3-fp8"] = (
         "Lightricks/LTX-2.3"
     )

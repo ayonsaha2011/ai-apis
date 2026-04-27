@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -27,7 +29,11 @@ from openai_multi_backend.models.download import (
     reset_downloader_for_tests,
     resolve_download_plan,
 )
-from openai_multi_backend.models.image import LTXCliMediaAdapter
+from openai_multi_backend.models.image import (
+    LTXCliMediaAdapter,
+    resolve_video_frame_count,
+    resolve_video_frame_rate,
+)
 from openai_multi_backend.models.registry import (
     MODEL_METADATA,
     ModelEntry,
@@ -62,6 +68,36 @@ def test_image_size_validation() -> None:
         size="768x512",
     )
     assert request.dimensions() == (768, 512)
+
+
+def test_video_duration_resolves_to_frame_count() -> None:
+    settings = Settings(
+        environment="test",
+        video_default_frames=49,
+        video_max_frames=257,
+        video_default_frame_rate=24.0,
+    )
+    request = ImageGenerationRequest(
+        model="Lightricks/LTX-2.3",
+        prompt="test video",
+        duration=2.5,
+        frame_rate=12.0,
+    )
+
+    assert resolve_video_frame_rate(request, settings) == 12.0
+    assert resolve_video_frame_count(request, settings) == 30
+
+
+def test_video_frames_override_duration_and_clamp_to_limit() -> None:
+    settings = Settings(environment="test", video_max_frames=100)
+    request = ImageGenerationRequest(
+        model="Lightricks/LTX-2.3",
+        prompt="test video",
+        frames=120,
+        duration=2.0,
+    )
+
+    assert resolve_video_frame_count(request, settings) == 100
 
 
 def test_registry_marks_disabled_models() -> None:
@@ -367,6 +403,49 @@ def test_ltx_cli_load_downloads_default_gemma_snapshot(monkeypatch, tmp_path) ->
         "cache_dir": str(tmp_path / "cache"),
         "token": "test-token",
     }
+
+
+def test_ltx_cli_generation_uses_duration_frame_rate_and_prompt_enhancer(
+    monkeypatch, tmp_path
+) -> None:
+    captured_args: list[str] = []
+
+    def fake_run(args, **_kwargs):
+        captured_args.extend(args)
+        output_path = args[args.index("--output-path") + 1]
+        tmp_path.joinpath(output_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(output_path).write_bytes(b"video")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    import openai_multi_backend.models.image as image_module
+
+    monkeypatch.setattr(image_module.subprocess, "run", fake_run)
+    settings = Settings(
+        environment="test",
+        output_dir=tmp_path,
+        default_device="cpu",
+        video_default_frame_rate=24.0,
+        ltx_gemma_root=tmp_path,
+    )
+    adapter = LTXCliMediaAdapter("Lightricks/LTX-2.3", settings)
+    adapter.checkpoint_path = tmp_path / "checkpoint.safetensors"
+    adapter.spatial_upsampler_path = tmp_path / "upsampler.safetensors"
+    adapter.gemma_root = tmp_path
+    adapter.help_text = adapter._supported_flags()
+    request = ImageGenerationRequest(
+        model="Lightricks/LTX-2.3",
+        prompt="test video",
+        size="1024x576",
+        duration=2.0,
+        frame_rate=12.0,
+        enhance_prompt=True,
+    )
+
+    adapter.generate(request)
+
+    assert captured_args[captured_args.index("--num-frames") + 1] == "24"
+    assert captured_args[captured_args.index("--frame-rate") + 1] == "12.0"
+    assert "--enhance-prompt" in captured_args
 
 
 def test_chat_model_download_uses_snapshot_plan(client: TestClient, monkeypatch, tmp_path) -> None:

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import importlib.util
+import math
 import subprocess
 import sys
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from openai_multi_backend.config import Settings
 from openai_multi_backend.models.base import (
     BaseModelAdapter,
     MediaItem,
@@ -65,10 +67,8 @@ class DiffusersMediaAdapter(MediaGenerationAdapter):
         if request.seed is not None:
             generator = torch.Generator(device=self.device if self.device != "mps" else "cpu")
             generator.manual_seed(request.seed)
-        frames = min(
-            request.frames or self.settings.video_default_frames,
-            self.settings.video_max_frames,
-        )
+        frame_rate = resolve_video_frame_rate(request, self.settings)
+        frames = resolve_video_frame_count(request, self.settings)
         raw_kwargs: dict[str, Any] = {
             "prompt": request.prompt,
             "negative_prompt": request.negative_prompt,
@@ -80,6 +80,9 @@ class DiffusersMediaAdapter(MediaGenerationAdapter):
             "generator": generator,
             "num_frames": frames,
             "frame_count": frames,
+            "frame_rate": frame_rate,
+            "fps": frame_rate,
+            "enhance_prompt": request.enhance_prompt,
         }
         kwargs = filter_supported_kwargs(self.pipeline.__call__, raw_kwargs)
         result = self.pipeline(**kwargs)
@@ -92,7 +95,7 @@ class DiffusersMediaAdapter(MediaGenerationAdapter):
         if frame_batches:
             normalized_batches = self._normalize_frame_batches(frame_batches)
             for frame_batch in normalized_batches[:batch_size]:
-                items.append(self._save_video(frame_batch, request.prompt))
+                items.append(self._save_video(frame_batch, request.prompt, frame_rate))
         if not items:
             raise RuntimeError(
                 f"Diffusers pipeline for '{self.model_id}' returned no images or video frames"
@@ -109,12 +112,12 @@ class DiffusersMediaAdapter(MediaGenerationAdapter):
             Image.fromarray(numpy.asarray(image)).save(path)
         return MediaItem(path=path, media_type="image/png", revised_prompt=prompt)
 
-    def _save_video(self, frames: list[Any], prompt: str) -> MediaItem:
+    def _save_video(self, frames: list[Any], prompt: str, frame_rate: float) -> MediaItem:
         imageio = import_optional("imageio")
         numpy = import_optional("numpy")
         path = self._output_path("mp4")
         arrays = [numpy.asarray(frame) for frame in frames]
-        imageio.mimsave(path, arrays, fps=24)
+        imageio.mimsave(path, arrays, fps=frame_rate)
         return MediaItem(
             path=path,
             media_type="video/mp4",
@@ -180,10 +183,8 @@ class LTXCliMediaAdapter(MediaGenerationAdapter):
     def generate(self, request: ImageGenerationRequest) -> list[MediaItem]:
         output_path = self._output_path("mp4")
         width, height = request.dimensions()
-        frames = min(
-            request.frames or self.settings.video_default_frames,
-            self.settings.video_max_frames,
-        )
+        frame_rate = resolve_video_frame_rate(request, self.settings)
+        frames = resolve_video_frame_count(request, self.settings)
         steps = min(
             request.num_inference_steps or self.settings.image_default_steps,
             self.settings.image_max_steps,
@@ -200,7 +201,9 @@ class LTXCliMediaAdapter(MediaGenerationAdapter):
         self._append_arg(args, "--height", str(height))
         self._append_arg(args, "--width", str(width))
         self._append_arg(args, "--num-frames", str(frames))
+        self._append_arg(args, "--frame-rate", str(frame_rate))
         self._append_arg(args, "--num-inference-steps", str(steps))
+        self._append_flag(args, "--enhance-prompt", request.enhance_prompt)
         if self.settings.ltx_repo_id.endswith("-fp8"):
             self._append_arg(args, "--quantization", "fp8-cast")
         if request.seed is not None:
@@ -233,6 +236,10 @@ class LTXCliMediaAdapter(MediaGenerationAdapter):
         if required or flag in self.help_text:
             args.extend([flag, value])
 
+    def _append_flag(self, args: list[str], flag: str, enabled: bool) -> None:
+        if enabled and flag in self.help_text:
+            args.append(flag)
+
     def _checkpoint_flag(self) -> str:
         if self.settings.ltx_pipeline_module.endswith(".distilled"):
             return "--distilled-checkpoint-path"
@@ -263,6 +270,7 @@ class LTXCliMediaAdapter(MediaGenerationAdapter):
             "--width",
             "--num-frames",
             "--frame-rate",
+            "--enhance-prompt",
             "--seed",
             "--quantization",
         }
@@ -320,3 +328,17 @@ class LTXCliMediaAdapter(MediaGenerationAdapter):
                 "If this is a gated Hugging Face model, accept its license for the configured "
                 "token or set OPENAI_MULTI_BACKEND_LTX_GEMMA_ROOT to a local snapshot directory."
             ) from exc
+
+
+def resolve_video_frame_rate(request: ImageGenerationRequest, settings: Settings) -> float:
+    return request.frame_rate or settings.video_default_frame_rate
+
+
+def resolve_video_frame_count(request: ImageGenerationRequest, settings: Settings) -> int:
+    if request.frames is not None:
+        frames = request.frames
+    elif request.duration is not None:
+        frames = math.ceil(request.duration * resolve_video_frame_rate(request, settings))
+    else:
+        frames = settings.video_default_frames
+    return max(1, min(frames, settings.video_max_frames))
