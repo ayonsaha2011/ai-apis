@@ -15,6 +15,8 @@ from openai_multi_backend.api.schemas import (
     SpeechRequest,
 )
 from openai_multi_backend.config import (
+    LTX_FP8_CHECKPOINT,
+    LTX_FP8_REPO_ID,
     LTX_GEMMA_REPO_ID,
     REQUESTED_MODEL_IDS,
     Settings,
@@ -275,6 +277,19 @@ def test_ltx_fp8_config_switches_download_defaults() -> None:
     assert settings.ltx_pipeline_module == "ltx_pipelines.ti2vid_one_stage"
     assert plan.repo_id == "Lightricks/LTX-2.3-fp8"
     assert plan.files == ("ltx-2.3-22b-distilled-fp8.safetensors",)
+
+
+def test_ltx_explicit_fp8_file_routes_to_fp8_repo() -> None:
+    settings = Settings(environment="test")
+    request = ModelDownloadRequest(
+        model="Lightricks/LTX-2.3",
+        files=[LTX_FP8_CHECKPOINT],
+    )
+
+    plan = resolve_download_plan(request, settings)
+
+    assert plan.repo_id == LTX_FP8_REPO_ID
+    assert plan.files == (LTX_FP8_CHECKPOINT,)
 
 
 def test_ltx_cli_load_discovers_module_without_importing_it(monkeypatch, tmp_path) -> None:

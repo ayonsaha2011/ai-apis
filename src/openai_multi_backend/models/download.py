@@ -10,7 +10,12 @@ from openai_multi_backend.api.schemas import (
     ModelDownloadRequest,
     ModelDownloadResponse,
 )
-from openai_multi_backend.config import LTX_GEMMA_REPO_ID, Settings
+from openai_multi_backend.config import (
+    LTX_FP8_CHECKPOINT,
+    LTX_FP8_REPO_ID,
+    LTX_GEMMA_REPO_ID,
+    Settings,
+)
 from openai_multi_backend.models.base import (
     ModelLoadError,
     OptionalDependencyError,
@@ -154,7 +159,7 @@ def resolve_download_plan(request: ModelDownloadRequest, settings: Settings) -> 
         raise KeyError(request.model)
     if request.files:
         return DownloadPlan(
-            repo_id=download_repo_id_for_model(request.model, settings),
+            repo_id=download_repo_id_for_model(request.model, settings, request.files),
             files=tuple(request.files),
             snapshot=False,
         )
@@ -182,8 +187,12 @@ def resolve_download_plan(request: ModelDownloadRequest, settings: Settings) -> 
     return DownloadPlan(repo_id=request.model, files=(), snapshot=True)
 
 
-def download_repo_id_for_model(model_id: str, settings: Settings) -> str:
+def download_repo_id_for_model(
+    model_id: str, settings: Settings, files: list[str] | None = None
+) -> str:
     if model_id == "Lightricks/LTX-2.3":
+        if files is not None and LTX_FP8_CHECKPOINT in files:
+            return LTX_FP8_REPO_ID
         return settings.ltx_repo_id
     return model_id
 
