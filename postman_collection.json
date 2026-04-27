@@ -1,0 +1,824 @@
+{
+  "info": {
+    "name": "OpenAI Multi-Backend API",
+    "description": "Postman collection for the OpenAI-compatible multi-model API service.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "api_key",
+      "value": "replace-with-a-long-random-token"
+    },
+    {
+      "key": "chat_model",
+      "value": "llmfan46/gemma-4-26B-A4B-it-ultra-uncensored-heretic"
+    },
+    {
+      "key": "image_model",
+      "value": "dx8152/Flux2-Klein-9B-Consistency"
+    },
+    {
+      "key": "ltx_model",
+      "value": "Lightricks/LTX-2.3"
+    },
+    {
+      "key": "ltx_gemma_model",
+      "value": "google/gemma-3-12b-it-qat-q4_0-unquantized"
+    },
+    {
+      "key": "transcription_model",
+      "value": "openai/whisper-large-v3-turbo"
+    },
+    {
+      "key": "parakeet_model",
+      "value": "nvidia/parakeet-tdt-0.6b-v3"
+    },
+    {
+      "key": "speech_model",
+      "value": "coqui/XTTS-v2"
+    },
+    {
+      "key": "qwen_speech_model",
+      "value": "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/healthz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "healthz"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/readyz",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "readyz"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Metrics",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "text/plain"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/metrics",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "metrics"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Models",
+      "item": [
+        {
+          "name": "List Models",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/models",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "models"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Chat Model",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/v1/models/{{chat_model}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "models",
+                "{{chat_model}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Model Artifacts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{ltx_model}}\",\n  \"force\": false,\n  \"local_files_only\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/models/download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "models",
+                "download"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download LTX FP8 Artifacts",
+          "request": {
+            "description": "Requires server config OPENAI_MULTI_BACKEND_LTX_REPO_ID=Lightricks/LTX-2.3-fp8.",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{ltx_model}}\",\n  \"files\": [\n    \"ltx-2.3-22b-distilled-fp8.safetensors\"\n  ],\n  \"force\": false,\n  \"local_files_only\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/models/download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "models",
+                "download"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download LTX Gemma Text Encoder Snapshot",
+          "request": {
+            "description": "Downloads the gated Gemma text encoder required by LTX-2. The configured Hugging Face token must have accepted access to this repo.",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{ltx_gemma_model}}\",\n  \"force\": false,\n  \"local_files_only\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/models/download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "models",
+                "download"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Explicit Model File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{image_model}}\",\n  \"files\": [\n    \"Flux2-Klein-9B-consistency-V2.safetensors\"\n  ],\n  \"force\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/models/download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "models",
+                "download"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Chat Model Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{chat_model}}\",\n  \"force\": false,\n  \"local_files_only\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/models/download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "models",
+                "download"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Whisper Audio Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{transcription_model}}\",\n  \"force\": false,\n  \"local_files_only\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/models/download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "models",
+                "download"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Parakeet Audio Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{parakeet_model}}\",\n  \"force\": false,\n  \"local_files_only\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/models/download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "models",
+                "download"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Qwen Speech Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{qwen_speech_model}}\",\n  \"force\": false,\n  \"local_files_only\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/models/download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "models",
+                "download"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download XTTS Speech Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{speech_model}}\",\n  \"force\": false,\n  \"local_files_only\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/models/download",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "models",
+                "download"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Text",
+      "item": [
+        {
+          "name": "Chat Completion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{chat_model}}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a concise assistant.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a short production deployment checklist.\"\n    }\n  ],\n  \"temperature\": 0.7,\n  \"top_p\": 0.95,\n  \"max_tokens\": 256,\n  \"stream\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "completions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Chat Completion Stream",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{chat_model}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Stream three concise API design tips.\"\n    }\n  ],\n  \"max_tokens\": 256,\n  \"stream\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/chat/completions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "completions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Text Completion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{chat_model}}\",\n  \"prompt\": \"Write a one-paragraph API reliability summary:\",\n  \"temperature\": 0.7,\n  \"top_p\": 0.95,\n  \"max_tokens\": 256,\n  \"stream\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/completions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "completions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Text Completion Stream",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{chat_model}}\",\n  \"prompt\": \"List three deployment checks:\",\n  \"max_tokens\": 128,\n  \"stream\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/completions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "completions"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Images And Media",
+      "item": [
+        {
+          "name": "Flux Image Generation URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{image_model}}\",\n  \"prompt\": \"A clean architecture diagram for an OpenAI-compatible multi-model API\",\n  \"size\": \"1024x1024\",\n  \"n\": 1,\n  \"response_format\": \"url\",\n  \"num_inference_steps\": 28,\n  \"guidance_scale\": 3.5,\n  \"seed\": 12345\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/images/generations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "images",
+                "generations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Flux Image Generation Base64",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{image_model}}\",\n  \"prompt\": \"A production GPU server rack in a clean illustration style\",\n  \"size\": \"1024x1024\",\n  \"n\": 1,\n  \"response_format\": \"b64_json\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/images/generations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "images",
+                "generations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "LTX Media Generation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{ltx_model}}\",\n  \"prompt\": \"A short cinematic shot of a futuristic API gateway glowing in a data center\",\n  \"size\": \"1024x576\",\n  \"n\": 1,\n  \"response_format\": \"url\",\n  \"frames\": 49,\n  \"num_inference_steps\": 28\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/images/generations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "images",
+                "generations"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audio",
+      "item": [
+        {
+          "name": "Whisper Transcription",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "model",
+                  "value": "{{transcription_model}}",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "response_format",
+                  "value": "json",
+                  "type": "text"
+                },
+                {
+                  "key": "language",
+                  "value": "en",
+                  "type": "text",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/audio/transcriptions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "audio",
+                "transcriptions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Parakeet Transcription",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "model",
+                  "value": "{{parakeet_model}}",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "response_format",
+                  "value": "json",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/audio/transcriptions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "audio",
+                "transcriptions"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Whisper Translation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "model",
+                  "value": "{{transcription_model}}",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "response_format",
+                  "value": "json",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/audio/translations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "audio",
+                "translations"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Speech Synthesis XTTS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{speech_model}}\",\n  \"input\": \"Production deployment is complete.\",\n  \"voice\": \"default\",\n  \"response_format\": \"wav\",\n  \"language\": \"en\",\n  \"speed\": 1.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/audio/speech",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "audio",
+                "speech"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Speech Synthesis XTTS Voice Clone",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{speech_model}}\",\n  \"input\": \"This line uses a cloned speaker reference.\",\n  \"voice\": \"custom\",\n  \"response_format\": \"wav\",\n  \"language\": \"en\",\n  \"speaker_wav\": \"/absolute/path/inside/configured/voice-reference-dir/speaker.wav\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/audio/speech",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "audio",
+                "speech"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Speech Synthesis Qwen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"{{qwen_speech_model}}\",\n  \"input\": \"This is generated by the Qwen TTS adapter.\",\n  \"voice\": \"default\",\n  \"response_format\": \"wav\",\n  \"language\": \"en\",\n  \"speed\": 1.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/v1/audio/speech",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "v1",
+                "audio",
+                "speech"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

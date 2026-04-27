@@ -1,0 +1,81 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openai-multi-backend"
+version = "0.1.0"
+description = "OpenAI-compatible multi-model API backed by local Hugging Face and PyTorch models."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+dependencies = [
+  "accelerate>=0.30",
+  "diffusers>=0.30",
+  "fastapi>=0.111",
+  "huggingface-hub>=0.24",
+  "imageio>=2.34",
+  "imageio-ffmpeg>=0.5",
+  "numpy>=1.26",
+  "opencv-python-headless>=4.10",
+  "orjson>=3.10",
+  "pillow>=10.3",
+  "prometheus-client>=0.20",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.3",
+  "python-multipart>=0.0.9",
+  "safetensors>=0.4",
+  "sentencepiece>=0.2",
+  "soundfile>=0.12",
+  "torch>=2.3",
+  "torchaudio>=2.3",
+  "transformers>=4.43",
+  "uvicorn[standard]>=0.30",
+]
+
+[project.optional-dependencies]
+asr = ["nemo-toolkit[asr]>=2.0"]
+tts = ["TTS>=0.22; python_version < '3.12'"]
+ltx = [
+  "ltx-core @ git+https://github.com/Lightricks/LTX-2.git#subdirectory=packages/ltx-core ; python_version >= '3.12'",
+  "ltx-pipelines @ git+https://github.com/Lightricks/LTX-2.git#subdirectory=packages/ltx-pipelines ; python_version >= '3.12'",
+]
+dev = [
+  "httpx>=0.27",
+  "mypy>=1.10",
+  "pytest>=8.2",
+  "pytest-asyncio>=0.23",
+  "ruff>=0.5",
+]
+
+[project.scripts]
+openai-multi-backend = "openai_multi_backend.main:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openai_multi_backend"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["openai_multi_backend"]
+warn_unused_configs = true
+ignore_missing_imports = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+  "integration: requires real model downloads, accepted licenses, and suitable hardware",
+]
