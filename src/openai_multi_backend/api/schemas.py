@@ -187,7 +187,7 @@ class ImageGenerationRequest(OpenAIBaseModel):
     frames: int | None = Field(default=None, ge=1)
     duration: float | None = Field(default=None, gt=0.0)
     frame_rate: float | None = Field(default=None, gt=0.0)
-    enhance_prompt: bool = False
+    enhance_prompt: bool = True
 
     @field_validator("size")
     @classmethod
