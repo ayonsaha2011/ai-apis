@@ -15,12 +15,15 @@ class WhisperASRAdapter(BaseModelAdapter):
         torch_dtype = self.resolve_torch_dtype()
         self.dtype = str(torch_dtype).replace("torch.", "")
         device_arg = 0 if self.device == "cuda" else self.device
+        hf_kwargs = self.common_hf_kwargs()
+        trust_remote_code = hf_kwargs.pop("trust_remote_code", False)
         self.pipeline = transformers.pipeline(
             task="automatic-speech-recognition",
             model=self.model_id,
             torch_dtype=torch_dtype,
             device=device_arg,
-            model_kwargs=self.common_hf_kwargs(),
+            model_kwargs=hf_kwargs,
+            trust_remote_code=trust_remote_code,
             return_timestamps=True,
         )
 
