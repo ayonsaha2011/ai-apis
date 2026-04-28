@@ -17,8 +17,11 @@ RUN apt-get update \
 COPY pyproject.toml README.md /app/
 COPY src /app/src
 
-RUN python3.12 -m pip install --no-cache-dir --upgrade pip --break-system-packages \
-    && python3.12 -m pip install --no-cache-dir --break-system-packages '.[asr,ltx]'
+RUN python3.12 -m pip install --no-cache-dir --upgrade pip --break-system-packages
+
+RUN python3.12 -m pip install --no-cache-dir --break-system-packages '.[ltx]'
+
+RUN python3.12 -m pip install --no-cache-dir --break-system-packages '.[asr]'
 
 EXPOSE 80
 
