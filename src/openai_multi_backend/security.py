@@ -15,7 +15,7 @@ async def require_api_key(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
     settings: Settings = Depends(get_settings),
 ) -> None:
-    if settings.environment in {"development", "test"} and not settings.api_keys:
+    if not settings.api_keys:
         return
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise OpenAIHTTPException(
