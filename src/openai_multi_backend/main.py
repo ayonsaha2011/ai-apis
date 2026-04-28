@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 import time
 import uuid
 from collections.abc import Callable
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, Request, Response
@@ -19,6 +22,28 @@ from openai_multi_backend.errors import (
     validation_exception_handler,
 )
 from openai_multi_backend.logging import configure_logging
+from openai_multi_backend.models.registry import ModelRegistry, get_registry
+
+logger = logging.getLogger(__name__)
+
+
+async def _prewarm_models(registry: ModelRegistry) -> None:
+    for entry in registry.list_metadata():
+        if entry.state == "configured":
+            endpoint = next(iter(entry.metadata.endpoints))
+            logger.info("Pre-warming model %s", entry.metadata.id)
+            try:
+                await registry.load_adapter(entry.metadata.id, endpoint)
+                logger.info("Pre-warm complete: %s", entry.metadata.id)
+            except Exception as exc:
+                logger.warning("Pre-warm failed for %s: %s", entry.metadata.id, exc)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):  # type: ignore[type-arg]
+    registry = get_registry(get_settings())
+    asyncio.create_task(_prewarm_models(registry))
+    yield
 
 
 def create_app() -> FastAPI:
@@ -31,6 +56,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
         docs_url="/docs" if settings.environment != "production" else None,
         redoc_url="/redoc" if settings.environment != "production" else None,
+        lifespan=lifespan,
     )
     app.add_exception_handler(OpenAIHTTPException, openai_http_exception_handler)  # type: ignore[arg-type]
     app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
