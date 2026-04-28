@@ -189,6 +189,7 @@ class ImageGenerationRequest(OpenAIBaseModel):
     frame_rate: float | None = Field(default=None, gt=0.0)
     enhance_prompt: bool = True
 
+
     @field_validator("size")
     @classmethod
     def validate_size(cls, value: str) -> str:
