@@ -11,6 +11,11 @@ from openai_multi_backend.models.registry import ModelRegistry, get_registry
 router = APIRouter()
 
 
+@router.get("/ping")
+async def ping() -> dict[str, str]:
+    return {"status": "healthy"}
+
+
 @router.get("/healthz")
 async def healthz() -> dict[str, str]:
     return {"status": "ok"}
