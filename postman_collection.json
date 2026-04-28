@@ -17,7 +17,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "http://localhost:8000"
+      "value": "https://6nzg6akbjzc99a.api.runpod.ai"
     },
     {
       "key": "api_key",
@@ -60,6 +60,25 @@
     {
       "name": "Health",
       "item": [
+        {
+          "name": "Ping (RunPod Health Probe)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ping",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ping"
+              ]
+            }
+          }
+        },
         {
           "name": "Health Check",
           "request": {
