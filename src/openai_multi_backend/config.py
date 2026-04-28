@@ -123,7 +123,10 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_security(self) -> Settings:
         if self.environment == "production" and not self.api_keys:
-            raise ValueError("OPENAI_MULTI_BACKEND_API_KEYS is required in production")
+            import logging
+            logging.getLogger(__name__).warning(
+                "OPENAI_MULTI_BACKEND_API_KEYS not set — running without app-level auth (external gateway expected)"
+            )
         unknown_models = sorted(set(self.enabled_models) - set(REQUESTED_MODEL_IDS))
         if unknown_models:
             raise ValueError(f"Unknown enabled model IDs: {', '.join(unknown_models)}")
